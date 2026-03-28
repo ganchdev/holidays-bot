@@ -130,7 +130,7 @@ class DeepSeekClient
     body[:tool_choice] = 'auto' unless tool_result
 
     response = HTTP
-               .headers(Authorization: "Bearer #{ENV['DEEPSEEK_API_KEY']}")
+               .headers(Authorization: "Bearer #{ENV.fetch('DEEPSEEK_API_KEY', nil)}")
                .post(API_URL, json: body)
 
     JSON.parse(response.body)

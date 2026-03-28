@@ -8,7 +8,6 @@ require_relative 'lib/messages'
 require 'dotenv/load'
 
 class Bot
-
   attr_reader :client, :db, :api_client, :deepseek, :messages
 
   def initialize
@@ -17,7 +16,7 @@ class Bot
     @deepseek = DeepSeekClient.new
     @messages = Messages.new
 
-    @client = Telegram::Bot::Client.new(ENV['TELEGRAM_BOT_TOKEN'])
+    @client = Telegram::Bot::Client.new(ENV.fetch('TELEGRAM_BOT_TOKEN', nil))
   end
 
   def run
