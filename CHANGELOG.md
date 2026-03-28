@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/ganchdev/holidays-bot/compare/v1.0.0...v1.0.1) (2026-03-28)
+
+
+### Bug Fixes
+
+* add build essentials to dockerfile ([a08329b](https://github.com/ganchdev/holidays-bot/commit/a08329bd0ac85a20754e07b1c4a6d9461f82774c))
+
 ## 1.0.0 (2026-03-28)
 
 
