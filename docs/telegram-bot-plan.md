@@ -440,6 +440,43 @@ CREATE TABLE pending_verifications (
 
 ---
 
+## Directory Structure
+
+```
+holidays-bot/                    # Bot repository (this repo)
+├── docs/
+│   └── telegram-bot-plan.md
+├── Gemfile
+├── bot.rb                      # Main entry point
+├── config.rb                   # Configuration
+├── Dockerfile                  # Ruby slim container
+├── docker-compose.yml          # Bot + Rails containers
+├── .env.example
+├── db/
+│   └── schema.sql              # SQLite schema
+└── lib/
+    ├── database.rb             # SQLite session management
+    ├── api_client.rb           # Rails API HTTP client
+    ├── deepseek_client.rb      # DeepSeek with tool definitions
+    ├── messages.rb             # BG/EN localization
+    └── tools/
+        ├── rooms.rb
+        ├── bookings.rb
+        └── guests.rb
+```
+
+## Rails App Connection
+
+The bot connects to the Rails API (running in `holidays/` directory):
+- API URL: Configurable via `RAILS_API_URL` env var
+- Auth: POST `/api/v1/auth/verify`
+- Rooms: GET `/api/v1/rooms`
+- Availability: GET `/api/v1/availability?starts=&ends=`
+- Guests: GET `/api/v1/guests?search=`
+- Bookings: GET/POST/PATCH `/api/v1/bookings`
+
+---
+
 ## Implementation Order
 
 ### Phase 1: Rails API ✅ Complete
@@ -454,18 +491,19 @@ CREATE TABLE pending_verifications (
 | Web endpoint for verification code generation | ✅ Done | `app/controllers/bot_verify_controller.rb`, `app/views/bot_verify/show.html.erb`, `config/routes.rb` |
 | Add `guest_id` filter to bookings endpoint | ✅ Done | `app/controllers/api/v1/bot_controller.rb` |
 
-### Phase 2: Telegram Bot ✅ Pending
+### Phase 2: Telegram Bot ✅ In Progress
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Project scaffolding | ⬜ Pending | Ruby + telegram-bot-ruby gem |
-| Bot SQLite schema (sessions, pending_verifications) | ⬜ Pending | |
-| Long polling message handler | ⬜ Pending | |
-| /start, /help commands | ⬜ Pending | |
-| /login command + email flow | ⬜ Pending | |
-| DeepSeek client + tool definitions | ⬜ Pending | |
-| Tool handlers (all v1 tools) | ⬜ Pending | |
-| BG/EN localization | ⬜ Pending | |
+| Project scaffolding | ✅ Done | `Gemfile`, `bot.rb`, `config.rb` |
+| Bot SQLite schema (sessions, pending_verifications) | ✅ Done | `db/schema.sql` |
+| Long polling message handler | ✅ Done | `bot.rb` |
+| /start, /help commands | ✅ Done | `bot.rb` |
+| /login command + email flow | ✅ Done | `bot.rb`, `lib/messages.rb` |
+| DeepSeek client + tool definitions | ✅ Done | `lib/deepseek_client.rb` |
+| Tool handlers (all v1 tools) | ✅ Done | `lib/api_client.rb`, `lib/tools/*.rb` |
+| BG/EN localization | ✅ Done | `lib/messages.rb` |
+| Docker setup | ✅ Done | `Dockerfile`, `docker-compose.yml` |
 
 ### Phase 3: Testing ✅ Pending
 
@@ -493,5 +531,15 @@ CREATE TABLE pending_verifications (
 - `app/models/bot_verification.rb` - Verification code model
 - `db/migrate/20250327000000_create_bot_verifications.rb` - Migration
 
-### Bot (to be created)
-- `bot/` - Ruby project directory (TBD)
+### Bot (created)
+- `Gemfile` - Ruby dependencies (telegram-bot-ruby, sqlite3, dotenv)
+- `bot.rb` - Main entry point
+- `config.rb` - Configuration
+- `db/schema.sql` - SQLite schema for sessions
+- `lib/database.rb` - Session management
+- `lib/api_client.rb` - Rails API HTTP client
+- `lib/deepseek_client.rb` - DeepSeek API with tool definitions
+- `lib/messages.rb` - BG/EN localization
+- `Dockerfile` - Ruby slim container
+- `docker-compose.yml` - Bot + Rails containers
+- `.env.example` - Environment variables

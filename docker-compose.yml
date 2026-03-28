@@ -1,0 +1,26 @@
+services:
+  rails:
+    build:
+      context: ../holidays
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - RAILS_ENV=production
+      - RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
+    volumes:
+      - ../holidays/db:/rails/db
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - rails
+    environment:
+      - RAILS_API_URL=http://rails:3000
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+    volumes:
+      - ./db:/app/db
+    restart: unless-stopped
