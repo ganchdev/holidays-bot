@@ -3,7 +3,7 @@
 FROM ruby:3.3.5-slim
 
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y sqlite3 libsqlite3-dev && \
+    apt-get install --no-install-recommends -y sqlite3 libsqlite3-dev build-essential && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 WORKDIR /app
