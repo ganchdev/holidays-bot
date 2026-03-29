@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.2](https://github.com/ganchdev/holidays-bot/compare/v1.0.1...v1.0.2) (2026-03-29)
+
+
+### Bug Fixes
+
+* add memory ([b655bb2](https://github.com/ganchdev/holidays-bot/commit/b655bb232ec9e6ec96003d6343c55c285b5ac324))
+* bot issues ([1915788](https://github.com/ganchdev/holidays-bot/commit/1915788902f4f4d74189feea61302497c464af2e))
+* formatting things ([a15abef](https://github.com/ganchdev/holidays-bot/commit/a15abef3ac433924f6874d60baff7156f59c6dd5))
+
 ## [1.0.1](https://github.com/ganchdev/holidays-bot/compare/v1.0.0...v1.0.1) (2026-03-28)
 
 
