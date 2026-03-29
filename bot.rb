@@ -15,6 +15,7 @@ class Bot
     @api_client = ApiClient.new
     @deepseek = DeepSeekClient.new
     @messages = Messages.new
+    @processed_ids = Set.new
 
     @client = Telegram::Bot::Client.new(ENV.fetch('TELEGRAM_BOT_TOKEN', nil))
   end
@@ -22,24 +23,39 @@ class Bot
   def run
     puts 'Bot starting...'
     client.run do |bot|
-      bot.on(:update) { |update| handle_update(bot, update) }
+      bot.listen do |message|
+        next unless message.is_a?(Telegram::Bot::Types::Message)
+        next if already_processed?(message)
+
+        @processed_ids.add(message.message_id)
+        handle_message(bot, message)
+      end
     end
   end
 
   private
 
-  def handle_update(bot, update)
-    return unless update.message
+  def already_processed?(message)
+    if @processed_ids.include?(message.message_id)
+      true
+    else
+      @processed_ids.clear if @processed_ids.size > 1000
+      false
+    end
+  end
 
-    chat = update.message.chat
-    text = update.message.text.to_s.strip
+  def handle_message(bot, message)
+    return unless message.text
+
+    chat = message.chat
+    text = message.text.to_s.strip
     session = db.get_session(chat.id)
 
-    update_language(session, bot, chat) if session
+    update_language(session, chat.id, message.from) if session
 
     case text
     when '/start'
-      bot.api.send_message(chat_id: chat.id, text: messages.welcome(update.message))
+      bot.api.send_message(chat_id: chat.id, text: messages.welcome(message))
     when '/help'
       bot.api.send_message(chat_id: chat.id, text: messages.help)
     when '/login'
@@ -69,7 +85,7 @@ class Bot
     return bot.api.send_message(chat_id: chat.id, text: messages.invalid_email) unless valid_email?(email)
 
     db.set_pending_verification(chat.id, email)
-    bot.api.send_message(chat_id: chat.id, text: format(messages.login_link(email), chat_id: chat.id))
+    bot.api.send_message(chat_id: chat.id, text: messages.login_link(email, chat.id))
   end
 
   def handle_verification_code(bot, chat, code)
@@ -98,22 +114,38 @@ class Bot
 
   def handle_natural_language(bot, chat, text, session)
     messages.language = session['language'] || 'en'
+    language = session['language'] || 'en'
 
     bot.api.send_message(chat_id: chat.id, text: messages.processing)
 
-    system_msg = { role: 'system', content: deepseek.system_prompt(session['language'] || 'en') }
+    system_msg = { role: 'system', content: deepseek.system_prompt(language, current_year: Time.now.year) }
     messages_history = [system_msg, { role: 'user', content: text }]
 
+    puts "DEBUG: Sending to DeepSeek..."
     result = deepseek.chat(messages_history)
+    puts "DEBUG: DeepSeek response: #{result.inspect[0..500]}"
 
-    if result['tool_calls']
-      messages_history << { role: 'assistant', content: nil, tool_calls: result['tool_calls'] }
+    if result['error']
+      puts "DEBUG: DeepSeek error: #{result['error']}"
+      bot.api.send_message(chat_id: chat.id, text: "Грешка в AI: #{result['error']['message']}")
+      return
+    end
 
-      result['tool_calls'].each do |tool_call|
+    message = result.dig('choices', 0, 'message')
+    tool_calls = message&.dig('tool_calls')
+
+    if tool_calls
+      puts "DEBUG: Tool calls found: #{tool_calls.inspect}"
+      messages_history << { role: 'assistant', content: message['content'], tool_calls: tool_calls }
+
+      tool_calls.each do |tool_call|
         tool_name = tool_call.dig('function', 'name')
         arguments = JSON.parse(tool_call.dig('function', 'arguments') || '{}')
+        puts "DEBUG: Executing tool: #{tool_name} with args: #{arguments.inspect}"
 
         tool_result = execute_tool(tool_name, arguments)
+        puts "DEBUG: Tool result: #{tool_result.inspect}"
+        
         messages_history << {
           role: 'tool',
           tool_call_id: tool_call['id'],
@@ -124,12 +156,13 @@ class Bot
       final_result = deepseek.chat(messages_history, tool_result: true)
       response = final_result.dig('choices', 0, 'message', 'content') || messages.error
     else
-      response = result.dig('choices', 0, 'message', 'content') || messages.error
+      response = message&.dig('content') || messages.error
     end
 
     bot.api.send_message(chat_id: chat.id, text: response)
   rescue StandardError => e
     puts "Error: #{e.message}"
+    puts e.backtrace.first(5).join("\n")
     bot.api.send_message(chat_id: chat.id, text: messages.error)
   end
 
@@ -154,13 +187,13 @@ class Bot
     end
   end
 
-  def update_language(session, _bot, chat)
+  def update_language(session, chat_id, from)
     return unless session
 
-    new_lang = chat.language_code&.start_with?('bg') ? 'bg' : 'en'
+    new_lang = from.language_code&.start_with?('bg') ? 'bg' : 'en'
     return if session['language'] == new_lang
 
-    db.update_language(chat.id, new_lang)
+    db.update_language(chat_id, new_lang)
   end
 
   def valid_email?(email)

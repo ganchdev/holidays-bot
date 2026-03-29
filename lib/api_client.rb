@@ -11,12 +11,16 @@ class ApiClient
       "#{BASE_URL}/api/v1/auth/verify",
       json: { chat_id: chat_id, code: code }
     )
-    JSON.parse(response.body)
+    parse_response(response)
+  rescue StandardError => e
+    { 'success' => false, 'error' => e.message }
   end
 
   def rooms
     response = HTTP.get("#{BASE_URL}/api/v1/rooms")
-    JSON.parse(response.body)
+    parse_response(response)
+  rescue StandardError => e
+    { 'rooms' => [], 'error' => e.message }
   end
 
   def availability(starts:, ends:)
@@ -24,7 +28,9 @@ class ApiClient
       "#{BASE_URL}/api/v1/availability",
       params: { starts: starts, ends: ends }
     )
-    JSON.parse(response.body)
+    parse_response(response)
+  rescue StandardError => e
+    { 'available' => [], 'error' => e.message }
   end
 
   def guests(search:)
@@ -32,18 +38,24 @@ class ApiClient
       "#{BASE_URL}/api/v1/guests",
       params: { search: search }
     )
-    JSON.parse(response.body)
+    parse_response(response)
+  rescue StandardError => e
+    { 'guests' => [], 'error' => e.message }
   end
 
   def bookings(params = {})
     query = params.compact
     response = HTTP.get("#{BASE_URL}/api/v1/bookings", params: query)
-    JSON.parse(response.body)
+    parse_response(response)
+  rescue StandardError => e
+    { 'bookings' => [], 'error' => e.message }
   end
 
   def booking(id)
     response = HTTP.get("#{BASE_URL}/api/v1/bookings/#{id}")
-    JSON.parse(response.body)
+    parse_response(response)
+  rescue StandardError => e
+    { 'booking' => nil, 'error' => e.message }
   end
 
   def create_booking(params)
@@ -51,7 +63,9 @@ class ApiClient
       "#{BASE_URL}/api/v1/bookings",
       json: params.compact
     )
-    JSON.parse(response.body)
+    parse_response(response)
+  rescue StandardError => e
+    { 'success' => false, 'error' => e.message }
   end
 
   def update_booking(id, params)
@@ -59,6 +73,19 @@ class ApiClient
       "#{BASE_URL}/api/v1/bookings/#{id}",
       json: params.compact
     )
-    JSON.parse(response.body)
+    parse_response(response)
+  rescue StandardError => e
+    { 'success' => false, 'error' => e.message }
+  end
+
+  private
+
+  def parse_response(response)
+    body = response.body.to_s
+    raise "API error: #{response.status} - #{body[0..200]}" unless response.status.success?
+
+    JSON.parse(body)
+  rescue JSON::ParserError
+    raise "Invalid JSON from API: #{body[0..200]}"
   end
 end

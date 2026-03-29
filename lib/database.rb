@@ -58,7 +58,7 @@ class Database
   private
 
   def db
-    @db ||= SQLite3::Database.new(DB_PATH)
+    @db ||= SQLite3::Database.new(DB_PATH).tap { |d| d.results_as_hash = true }
   end
 
   def ensure_schema
