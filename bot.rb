@@ -16,6 +16,7 @@ class Bot
     @deepseek = DeepSeekClient.new
     @messages = Messages.new
     @processed_ids = Set.new
+    @conversations = {}  # chat_id => messages history
 
     @client = Telegram::Bot::Client.new(ENV.fetch('TELEGRAM_BOT_TOKEN', nil))
   end
@@ -55,6 +56,7 @@ class Bot
 
     case text
     when '/start'
+      @conversations.delete(chat.id.to_s)
       bot.api.send_message(chat_id: chat.id, text: messages.welcome(message))
     when '/help'
       bot.api.send_message(chat_id: chat.id, text: messages.help)
@@ -109,8 +111,11 @@ class Bot
 
   def handle_logout(bot, chat)
     db.delete_session(chat.id)
+    @conversations.delete(chat.id.to_s)
     bot.api.send_message(chat_id: chat.id, text: messages.logged_out)
   end
+
+  MAX_CONVERSATION_MESSAGES = 20
 
   def handle_natural_language(bot, chat, text, session)
     messages.language = session['language'] || 'en'
@@ -118,11 +123,23 @@ class Bot
 
     bot.api.send_message(chat_id: chat.id, text: messages.processing)
 
-    system_msg = { role: 'system', content: deepseek.system_prompt(language, current_year: Time.now.year) }
-    messages_history = [system_msg, { role: 'user', content: text }]
+    # Get or initialize conversation history
+    chat_id = chat.id.to_s
+    @conversations[chat_id] ||= []
 
-    puts "DEBUG: Sending to DeepSeek..."
-    result = deepseek.chat(messages_history)
+    # Add system prompt if history is empty
+    if @conversations[chat_id].empty?
+      @conversations[chat_id] << { role: 'system', content: deepseek.system_prompt(language, current_year: Time.now.year) }
+    end
+
+    # Add user message
+    @conversations[chat_id] << { role: 'user', content: text }
+
+    # Trim to max messages (keeping system prompt)
+    trim_conversation(chat_id)
+
+    puts "DEBUG: Sending to DeepSeek with #{@conversations[chat_id].length} messages..."
+    result = deepseek.chat(@conversations[chat_id])
     puts "DEBUG: DeepSeek response: #{result.inspect[0..500]}"
 
     if result['error']
@@ -136,7 +153,7 @@ class Bot
 
     if tool_calls
       puts "DEBUG: Tool calls found: #{tool_calls.inspect}"
-      messages_history << { role: 'assistant', content: message['content'], tool_calls: tool_calls }
+      @conversations[chat_id] << { role: 'assistant', content: message['content'], tool_calls: tool_calls }
 
       tool_calls.each do |tool_call|
         tool_name = tool_call.dig('function', 'name')
@@ -145,18 +162,22 @@ class Bot
 
         tool_result = execute_tool(tool_name, arguments)
         puts "DEBUG: Tool result: #{tool_result.inspect}"
-        
-        messages_history << {
+
+        @conversations[chat_id] << {
           role: 'tool',
           tool_call_id: tool_call['id'],
           content: tool_result.to_json
         }
       end
 
-      final_result = deepseek.chat(messages_history, tool_result: true)
+      final_result = deepseek.chat(@conversations[chat_id], tool_result: true)
       response = final_result.dig('choices', 0, 'message', 'content') || messages.error
+
+      # Add final response to history
+      @conversations[chat_id] << { role: 'assistant', content: response }
     else
       response = message&.dig('content') || messages.error
+      @conversations[chat_id] << { role: 'assistant', content: response }
     end
 
     bot.api.send_message(chat_id: chat.id, text: response)
@@ -194,6 +215,17 @@ class Bot
     return if session['language'] == new_lang
 
     db.update_language(chat_id, new_lang)
+  end
+
+  def trim_conversation(chat_id)
+    return if @conversations[chat_id].length <= MAX_CONVERSATION_MESSAGES
+
+    # Keep system prompt (first message) and trim older messages
+    system_prompt = @conversations[chat_id].first
+    rest = @conversations[chat_id][1..]
+
+    # Keep last MAX_CONVERSATION_MESSAGES - 1 messages (plus system = MAX)
+    @conversations[chat_id] = [system_prompt] + rest.last(MAX_CONVERSATION_MESSAGES - 1)
   end
 
   def valid_email?(email)
