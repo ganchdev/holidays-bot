@@ -106,7 +106,8 @@ class Bot
 
     if result['success']
       user = result['user']
-      db.save_session(chat.id, user['id'], user['name'], user['email'])
+      token = result['token']
+      db.save_session(chat.id, user['id'], user['name'], user['email'], token)
       db.delete_pending_verification(chat.id)
       send_msg(bot, chat.id, messages.login_success(user['name']))
     else
@@ -158,7 +159,7 @@ class Bot
         arguments = JSON.parse(tool_call.dig('function', 'arguments') || '{}')
         puts "DEBUG: Executing tool: #{tool_name} with args: #{arguments.inspect}"
 
-        tool_result = execute_tool(tool_name, arguments)
+        tool_result = execute_tool(tool_name, arguments, token: session['token'])
         puts "DEBUG: Tool result: #{tool_result.inspect}"
 
         @conversations[chat_id] << {
@@ -183,22 +184,22 @@ class Bot
     send_msg(bot, chat.id, messages.error)
   end
 
-  def execute_tool(name, args)
+  def execute_tool(name, args, token: nil)
     case name
     when 'list_rooms'
-      api_client.rooms
+      api_client.rooms(token: token)
     when 'check_availability'
-      api_client.availability(starts: args['starts'], ends: args['ends'])
+      api_client.availability(starts: args['starts'], ends: args['ends'], token: token)
     when 'list_bookings'
-      api_client.bookings(args)
+      api_client.bookings(args, token: token)
     when 'create_booking'
-      api_client.create_booking(args)
+      api_client.create_booking(args, token: token)
     when 'update_booking'
-      api_client.update_booking(args['booking_id'], args)
+      api_client.update_booking(args['booking_id'], args, token: token)
     when 'search_guest'
-      api_client.guests(search: args['name'])
+      api_client.guests(search: args['name'], token: token)
     when 'get_guest_bookings'
-      api_client.bookings(guest_id: args['guest_id'])
+      api_client.bookings({ guest_id: args['guest_id'] }, token: token)
     else
       { error: "Unknown tool: #{name}" }
     end

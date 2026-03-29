@@ -16,13 +16,20 @@ class Database
     ).first
   end
 
-  def save_session(chat_id, user_id, user_name, user_email)
+  def save_session(chat_id, user_id, user_name, user_email, token = nil)
     db.execute(
       <<~SQL,
-        INSERT OR REPLACE INTO sessions (chat_id, user_id, user_name, user_email, last_active_at)
-        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT OR REPLACE INTO sessions (chat_id, user_id, user_name, user_email, token, last_active_at)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       SQL
-      [chat_id.to_s, user_id, user_name, user_email]
+      [chat_id.to_s, user_id, user_name, user_email, token]
+    )
+  end
+
+  def update_token(chat_id, token)
+    db.execute(
+      'UPDATE sessions SET token = ?, last_active_at = CURRENT_TIMESTAMP WHERE chat_id = ?',
+      [token, chat_id.to_s]
     )
   end
 

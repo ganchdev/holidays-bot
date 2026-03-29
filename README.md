@@ -4,11 +4,12 @@ A Telegram bot with DeepSeek-powered natural language interface for hotel bookin
 
 ## Features
 
-- Natural language queries for room availability
-- CRUD operations for bookings (except delete)
+- Natural language queries for room availability and bookings
+- Create and update bookings via conversation
 - Guest search and booking history
-- Bulgarian and English localization
-- Secure login via verification code
+- Bulgarian language (default) with conversation memory
+- Secure login via web verification + token authentication
+- HTML formatted responses
 
 ## Setup
 
@@ -42,17 +43,17 @@ docker-compose up --build
 
 | Command | Description |
 |---------|-------------|
-| `/start` | Start the bot |
+| `/start` | Start bot, clear conversation |
 | `/login` | Log in with email |
-| `/logout` | Log out |
+| `/logout` | Log out, clear conversation |
 | `/help` | Show help |
 
 ## Login Flow
 
 1. `/login` → enter email address
 2. Bot shows link to verification page
-3. Open link in browser → note the 6-digit code
-4. Enter code in Telegram → logged in
+3. Open link in browser → if logged in, see the 6-digit code
+4. Enter code in Telegram → logged in with API token
 
 ## Tech Stack
 
@@ -60,3 +61,4 @@ docker-compose up --build
 - telegram-bot-ruby
 - DeepSeek API (function calling)
 - SQLite (session storage)
+- Rails API (booking data)

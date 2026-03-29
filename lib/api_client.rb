@@ -16,69 +16,74 @@ class ApiClient
     { 'success' => false, 'error' => e.message }
   end
 
-  def rooms
-    response = HTTP.get("#{BASE_URL}/api/v1/rooms")
-    parse_response(response)
-  rescue StandardError => e
-    { 'rooms' => [], 'error' => e.message }
+  def rooms(token: nil)
+    authenticated_get('/api/v1/rooms', token: token)
   end
 
-  def availability(starts:, ends:)
-    response = HTTP.get(
-      "#{BASE_URL}/api/v1/availability",
-      params: { starts: starts, ends: ends }
+  def availability(starts:, ends:, token: nil)
+    authenticated_get(
+      '/api/v1/availability',
+      params: { starts: starts, ends: ends },
+      token: token
     )
-    parse_response(response)
-  rescue StandardError => e
-    { 'available' => [], 'error' => e.message }
   end
 
-  def guests(search:)
-    response = HTTP.get(
-      "#{BASE_URL}/api/v1/guests",
-      params: { search: search }
+  def guests(search:, token: nil)
+    authenticated_get(
+      '/api/v1/guests',
+      params: { search: search },
+      token: token
     )
-    parse_response(response)
-  rescue StandardError => e
-    { 'guests' => [], 'error' => e.message }
   end
 
-  def bookings(params = {})
+  def bookings(params = {}, token: nil)
     query = params.compact
-    response = HTTP.get("#{BASE_URL}/api/v1/bookings", params: query)
-    parse_response(response)
-  rescue StandardError => e
-    { 'bookings' => [], 'error' => e.message }
+    authenticated_get('/api/v1/bookings', params: query, token: token)
   end
 
-  def booking(id)
-    response = HTTP.get("#{BASE_URL}/api/v1/bookings/#{id}")
-    parse_response(response)
-  rescue StandardError => e
-    { 'booking' => nil, 'error' => e.message }
+  def booking(id, token: nil)
+    authenticated_get("/api/v1/bookings/#{id}", token: token)
   end
 
-  def create_booking(params)
-    response = HTTP.post(
-      "#{BASE_URL}/api/v1/bookings",
-      json: params.compact
-    )
-    parse_response(response)
-  rescue StandardError => e
-    { 'success' => false, 'error' => e.message }
+  def create_booking(params, token: nil)
+    authenticated_post('/api/v1/bookings', params.compact, token: token)
   end
 
-  def update_booking(id, params)
-    response = HTTP.patch(
-      "#{BASE_URL}/api/v1/bookings/#{id}",
-      json: params.compact
-    )
-    parse_response(response)
-  rescue StandardError => e
-    { 'success' => false, 'error' => e.message }
+  def update_booking(id, params, token: nil)
+    authenticated_patch("/api/v1/bookings/#{id}", params.compact, token: token)
   end
 
   private
+
+  def authenticated_get(path, params: {}, token: nil)
+    headers = auth_headers(token)
+    response = HTTP.headers(headers).get("#{BASE_URL}#{path}", params: params)
+    parse_response(response)
+  rescue StandardError => e
+    { 'error' => e.message }
+  end
+
+  def authenticated_post(path, params, token: nil)
+    headers = auth_headers(token)
+    response = HTTP.headers(headers).post("#{BASE_URL}#{path}", json: params)
+    parse_response(response)
+  rescue StandardError => e
+    { 'success' => false, 'error' => e.message }
+  end
+
+  def authenticated_patch(path, params, token: nil)
+    headers = auth_headers(token)
+    response = HTTP.headers(headers).patch("#{BASE_URL}#{path}", json: params)
+    parse_response(response)
+  rescue StandardError => e
+    { 'success' => false, 'error' => e.message }
+  end
+
+  def auth_headers(token)
+    headers = { 'Content-Type' => 'application/json' }
+    headers['Authorization'] = "Bearer #{token}" if token
+    headers
+  end
 
   def parse_response(response)
     body = response.body.to_s
