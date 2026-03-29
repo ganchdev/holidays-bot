@@ -1,4 +1,4 @@
-# Holidays Telegram Bot
+# Holidays Telegram Slop Bot
 
 A Telegram bot with DeepSeek-powered natural language interface for hotel booking management.
 
