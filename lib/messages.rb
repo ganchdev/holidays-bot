@@ -13,7 +13,7 @@ class Messages
       invalid_code: 'Invalid or expired code. Please try /login again.',
       invalid_email: 'Invalid email format. Please enter a valid email address.',
       error: 'Something went wrong. Please try again.',
-      processing: 'Let me check that for you...'
+      processing: '🤔 (мисля) ...'
     },
     bg: {
       welcome: 'Здравей %{name}! Аз съм хотелският асистент. Как мога да ти помогна?',
@@ -26,7 +26,7 @@ class Messages
       invalid_code: 'Невалиден или изтекъл код. Моля, опитай с /login отново.',
       invalid_email: 'Невалиден имейл формат. Моля, въведи валиден имейл адрес.',
       error: 'Нещо се обърка. Моля, опитай отново.',
-      processing: 'Проверявам...'
+      processing: '🤔 (мисля) ...'
     }
   }.freeze
 

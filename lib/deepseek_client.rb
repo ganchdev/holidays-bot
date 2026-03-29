@@ -152,6 +152,7 @@ class DeepSeekClient
         3. НИКОГА не питай за година - винаги приемай текущата година (#{current_year}) освен ако потребителят изрично не посочи друга.
         4. Ако потребителят спомене месец без година, приемай #{current_year} като година.
         5. Ако датите са в миналото спрямо днешната дата (#{today.strftime('%Y-%m-%d')}), приемай че става дума за следващата година (#{current_year + 1}).
+        6. ВИНАГИ използвай ЕВРО (€) за валута - НЕ използвай левове, долари или други валути.
 
         ТЕКУЩА ДАТА: #{today.strftime('%Y-%m-%d')} (днес е #{current_day}.#{current_month}.#{current_year})
         ТЕКУЩА ГОДИНА: #{current_year}
@@ -196,6 +197,11 @@ class DeepSeekClient
         - "Направи резервация за стая 1 от 15 до 20 август" → create_booking с room_id=1, starts="#{current_year}-08-15", ends="#{current_year}-08-20"
         - "Покажи резервациите" → list_bookings
 
+        ФОРМАТИРАНЕ: Използвай HTML тагове за форматиране в отговорите:
+        - <b>текст</b> за удебелен текст
+        - <i>текст</i> за курсив
+        - <code>текст</code> за код/номера
+
         АЛГОРИТЪМ:
         1. Разпознай намерение (наличност, резервация, списък на стаи, списък на резервации)
         2. Извлечи дати от текста (ако има)
@@ -221,6 +227,7 @@ class DeepSeekClient
         3. NEVER ask for year - always assume current year (#{current_year}) unless user explicitly specifies another year.
         4. If user mentions month without year, assume #{current_year}.
         5. If dates are in the past relative to today (#{today.strftime('%Y-%m-%d')}), assume next year (#{current_year + 1}).
+        6. ALWAYS use EURO (€) for currency - do NOT use leva, dollars or other currencies.
 
         CURRENT DATE: #{today.strftime('%Y-%m-%d')}
         CURRENT YEAR: #{current_year}
@@ -256,6 +263,11 @@ class DeepSeekClient
         - "Show me rooms" → list_rooms
         - "Make a booking for room 1 from August 15-20" → create_booking with room_id=1, starts="#{current_year}-08-15", ends="#{current_year}-08-20"
         - "List bookings" → list_bookings
+
+        FORMATTING: Use HTML tags in responses:
+        - <b>text</b> for bold
+        - <i>text</i> for italic
+        - <code>text</code> for code/numbers
 
         ALGORITHM:
         1. Recognize intent (availability, booking, list rooms, list bookings)
