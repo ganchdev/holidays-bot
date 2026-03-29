@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/ganchdev/holidays-bot/compare/v1.0.2...v1.0.3) (2026-03-29)
+
+
+### Bug Fixes
+
+* auth api calls with a token ([828aa2a](https://github.com/ganchdev/holidays-bot/commit/828aa2a1fac147258e92fe5f8854c07522ae8655))
+
 ## [1.0.2](https://github.com/ganchdev/holidays-bot/compare/v1.0.1...v1.0.2) (2026-03-29)
 
 
